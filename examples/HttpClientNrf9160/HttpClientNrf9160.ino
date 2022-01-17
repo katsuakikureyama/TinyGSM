@@ -199,8 +199,25 @@
  *   extras/nrf9160_circuitdojo_feather_bootloader_v2-010421-1502-merged.hex
  * + Command line for programming
  *   nrfjprog -f NRF91 --program nrf9160_circuitdojo_feather_bootloader_v2-010421-1502-merged.hex --sectorerase
+ *
+ *
+ * Nordic nRF9160-DK development kit firmware
+ * + Please note, there seems to be no header pin to connect
+ *   to the RESET and soldering a wire to the RESET button on
+ *   the nRF9160-DK might be necessary, however, pressing the
+ *   RESET button at the right time will also work for
+ *   development testing
+ * + The UART and GPIO information is as follows
+ *   + 115200,8,N,1
+ *   + tx-pin = <10>;
+ *   + rx-pin = <11>;
+ * + The two firmware files are for the nRF9160-DK
+ *   + for use with the bootloader
+ *     nrf9160_dk_1.8.0_serial_lte_modem_app_update.bin
+ *   + for use with JTAG programming
+ *     nrf9160_dk_1.8.0_serial_lte_modem_merged.hex
  **************************************************************/
- 
+
 // Select your modem:
 // #define TINY_GSM_MODEM_SIM800
 // #define TINY_GSM_MODEM_SIM808

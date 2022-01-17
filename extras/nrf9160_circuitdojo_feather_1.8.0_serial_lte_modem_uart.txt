@@ -1,0 +1,7 @@
+nrf9160_circuitdojo_feather_1.8.0_serial_lte_modem_115200_merged.hex
+nrf9160_circuitdojo_feather_1.8.0_serial_lte_modem_115200_app_update.hex
+UART mapping
+115200,8,N,1
+rx-pin = <23>;  // Feather nRF9160 RX (as marked on the silkscreen)
+tx-pin = <24>;  // Feather nRF9169 TX (as marked on the silkscreen)
+hardware flow control disabled
