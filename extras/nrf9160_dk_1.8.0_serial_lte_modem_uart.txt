@@ -1,7 +1,0 @@
-nrf9160_dk_1.8.0_serial_lte_modem_merged.hex
-nrf9160_dk_1.8.0_serial_lte_modem_app_update.hex
-UART mapping
-115200,8,N,1
-tx-pin = <10>;
-rx-pin = <11>;
-hardware flow control disabled

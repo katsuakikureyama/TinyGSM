@@ -213,9 +213,9 @@
  *   + rx-pin = <11>;
  * + The two firmware files are for the nRF9160-DK
  *   + for use with the bootloader
- *     nrf9160_dk_1.8.0_serial_lte_modem_app_update.bin
+ *     nrf9160_dk_1.8.0_serial_lte_modem_115200_app_update.bin
  *   + for use with JTAG programming
- *     nrf9160_dk_1.8.0_serial_lte_modem_merged.hex
+ *     nrf9160_dk_1.8.0_serial_lte_modem_115200_merged.hex
  **************************************************************/
 
 // Select your modem:
