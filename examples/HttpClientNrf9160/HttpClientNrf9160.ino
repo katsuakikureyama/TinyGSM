@@ -216,6 +216,18 @@
  *     nrf9160_dk_1.8.0_serial_lte_modem_115200_app_update.bin
  *   + for use with JTAG programming
  *     nrf9160_dk_1.8.0_serial_lte_modem_115200_merged.hex
+ *
+ *
+ * Actinius Icarus firmware
+ * + The UART and GPIO information is as follows
+ *   + 115200,8,N,1
+ *   + rx-pin = <23>;
+ *   + tx-pin = <24>;
+ * + The two firmware files are for the Actinius Icarus
+ *   + for use with the bootloader
+ *     nrf9160_actinius_icarus_1.8.0_serial_lte_modem_115200_app_update.bin
+ *   + for use with JTAG programming
+ *     nrf9160_actinius_icarus_1.8.0_serial_lte_modem_115200_merged.hex
  **************************************************************/
 
 // Select your modem:
