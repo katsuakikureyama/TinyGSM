@@ -827,6 +827,10 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
     else 
       sendAT(GF("#XRECV="),size);
 
+    //  ^^ Requested number of data bytes (1-1460 bytes)to be read
+    int16_t len_requested = size;
+    int16_t len_confirmed = 0;
+
     //begin receiving data here into temp buffer
     while (receive_done == false) {
       uint32_t startMillis = millis();
@@ -844,6 +848,8 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
         if(buffer_length > strlen("#XRECV:")) {
           if(strncmp(&buffer[buffer_length - strlen("#XRECV:")], "#XRECV:", strlen("#XRECV:")) == 0) {
             //DBG(" detected [#XRECV:] at ", buffer_length - 7);
+            len_confirmed = streamGetIntBefore('\n');
+            waitResponse(timeout_ms, "OK\r\n");
             receive_done = true;
           }
         }
@@ -854,9 +860,6 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
         }
       }
     }
-    //  ^^ Requested number of data bytes (1-1460 bytes)to be read
-    int16_t len_requested = size;
-    int16_t len_confirmed = streamGetIntBefore('\n');
     /*
     DBG(" datatype      = ", datatype);
     DBG(" len_requested = ", len_requested);
@@ -866,7 +869,8 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
 
     if(datatype == 0) {
       // adjust for binary lenth which is double
-      len_confirmed = len_confirmed / 2;
+      if(len_confirmed != 0)
+        len_confirmed = len_confirmed / 2;
     }
 
     if(len_confirmed > 0) {
@@ -894,7 +898,7 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
     // DBG("### READ:", len_requested, "from", mux);
     // sockets[mux]->sock_available = modemGetAvailable(mux);
     sockets[mux]->sock_available = len_confirmed;
-    waitResponse(timeout_ms);
+    //waitResponse(timeout_ms);
     return len_confirmed;
   }
 
