@@ -51,9 +51,9 @@
  *   
  * Program the nRF9160 Circuit Dojo Feather as shown below
  * The source code is also available in extras
- *   + based on the v1.8.0 SDK serial_lte_modem sample application
+ *   + based on the v1.9.1 SDK serial_lte_modem sample application
  *   + a few additions were made to support binary data transfers
- *   + nrf9160_circuitdojo_feather_1.8.0_serial_lte_modem_115200_src.zip
+ *   + nrf9160_circuitdojo_feather_1.9.1_serial_lte_modem_115200_src.zip
  *     + The source code is not complete, will need to install
  *       the full toolchain if rebuilding the nRF9160 firmware
  *       is desired, beyond the scope of this information
@@ -118,7 +118,7 @@
  *       newtmgr conn add serial type=serial connstring='dev=/dev/tty.SLAB_USBtoUART,baud=1000000'
  *     + Once in bootloader (programming) mode use the
  *       below command to program
- *       newtmgr -c serial image upload nrf9160_circuitdojo_feather_1.8.0_serial_lte_modem_115200_app_update.bin
+ *       newtmgr -c serial image upload nrf9160_circuitdojo_feather_1.9.1_serial_lte_modem_115200_app_update.bin
  *     + Reset the nRF9160 Feather using the "RST" button 
  *     
  *     
@@ -136,7 +136,7 @@
  *       + Download from Nordic's website
  *         https://www.nordicsemi.com/Products/Development-tools/nrf-command-line-tools/download#infotabs
  *       + Command line for programming
- *         nrfjprog -f NRF91 --program nrf9160_circuitdojo_feather_1.8.0_serial_lte_modem_115200_merged.hex --sectorerase
+ *         nrfjprog -f NRF91 --program nrf9160_circuitdojo_feather_1.9.1_serial_lte_modem_115200_merged.hex --sectorerase
  *     + "Programmer" application in the "nRF Connect" application by Nordic
  *       + download for free from Nordic's website
  *       https://www.nordicsemi.com/Products/Development-tools/nrf-connect-for-desktop/download
@@ -213,9 +213,9 @@
  *   + rx-pin = <11>;
  * + The two firmware files are for the nRF9160-DK
  *   + for use with the bootloader
- *     nrf9160_dk_1.8.0_serial_lte_modem_115200_app_update.bin
+ *     nrf9160_dk_1.9.1_serial_lte_modem_115200_app_update.bin
  *   + for use with JTAG programming
- *     nrf9160_dk_1.8.0_serial_lte_modem_115200_merged.hex
+ *     nrf9160_dk_1.9.1_serial_lte_modem_115200_merged.hex
  *
  *
  * Actinius Icarus firmware
@@ -225,9 +225,9 @@
  *   + tx-pin = <24>;
  * + The two firmware files are for the Actinius Icarus
  *   + for use with the bootloader
- *     nrf9160_actinius_icarus_1.8.0_serial_lte_modem_115200_app_update.bin
+ *     nrf9160_actinius_icarus_1.9.1_serial_lte_modem_115200_app_update.bin
  *   + for use with JTAG programming
- *     nrf9160_actinius_icarus_1.8.0_serial_lte_modem_115200_merged.hex
+ *     nrf9160_actinius_icarus_1.9.1_serial_lte_modem_115200_merged.hex
  **************************************************************/
 
 // Select your modem:

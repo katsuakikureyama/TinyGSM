@@ -1,0 +1,7 @@
+nrf9160_actinius_icarus_1.9.1_serial_lte_modem_115200_merged.hex
+nrf9160_actinius_icarus_1.9.1_serial_lte_modem_115200_app_update.hex
+UART mapping
+115200,8,N,1
+rx-pin = <23>;
+tx-pin = <24>;
+hardware flow control disabled

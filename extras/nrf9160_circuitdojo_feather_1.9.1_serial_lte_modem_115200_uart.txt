@@ -1,5 +1,5 @@
-nrf9160_circuitdojo_feather_1.8.0_serial_lte_modem_115200_merged.hex
-nrf9160_circuitdojo_feather_1.8.0_serial_lte_modem_115200_app_update.hex
+nrf9160_circuitdojo_feather_1.9.1_serial_lte_modem_115200_merged.hex
+nrf9160_circuitdojo_feather_1.9.1_serial_lte_modem_115200_app_update.hex
 UART mapping
 115200,8,N,1
 rx-pin = <23>;  // Feather nRF9160 RX (as marked on the silkscreen)
