@@ -676,7 +676,9 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
     uint8_t result_op       = streamGetIntBefore(',');
     uint8_t result_type     = streamGetIntBefore(',');
     uint8_t result_protocol = streamGetIntBefore('\n'); // 6 = IPPROTO_TCP
-    if (request_op != result_op || request_type != result_type || result_protocol != result_protocol) return false;
+    //if (request_op != result_op || request_type != result_type || result_protocol != result_protocol) return false;
+    //fix for nRF9160 SDK 1.9.1
+    if (request_type != result_type || result_protocol != result_protocol) return false;
 
     // wait for ok
     if (waitResponse(timeout_ms, "OK") != 1) { return false; }
