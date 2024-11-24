@@ -5,7 +5,12 @@
  * @copyright  Copyright (c) 2016 Volodymyr Shymanskyy
  * @date       Nov 2016
  */
-
+#include <deque>
+#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+#include <regex>
 #ifndef SRC_TINYGSMCLIENTNRF9160_H_
 #define SRC_TINYGSMCLIENTNRF9160_H_
 
@@ -14,7 +19,11 @@
 
 #define TINY_GSM_MUX_COUNT 1
 #define TINY_GSM_BUFFER_READ_AND_CHECK_SIZE
-#define NRF9160_NET_IPV4_MTU_SIZE_RX 668
+// #define TINY_GSM_BUFFER_READ_NO_CHECK
+#define NRF9160_NET_IPV4_MTU_SIZE_RX 2100
+#define NRF9160_TCP_PAYLOAD_SIZE_RX 2048
+
+
 //#define NRF9160_NET_IPV4_MTU_SIZE_TX 288 // 576 / 2 = 288
 #define NRF9160_NET_IPV4_MTU_SIZE_TX 100 // appears to be close to the upper limit
                                          // to not overrun the nRF9160 buffer, 128 is too big
@@ -84,6 +93,7 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
     }
 
     bool init(TinyGsmNrf9160* modem, uint8_t mux = 1) {
+       Serial.println("nrf init");
       this->at       = modem;
       sock_available = 0;
       prev_check     = 0;
@@ -102,6 +112,7 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
 
    public:
     virtual int connect(const char* host, uint16_t port, int timeout_s) {
+       Serial.println("nrf connect");
       stop();
       TINY_GSM_YIELD();
       rx.clear();
@@ -115,15 +126,16 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
       uint32_t timeout_ms = ((uint32_t)timeout_s) * 1000;
       dumpModemBuffer(maxWaitMs);
       //at->sendAT(GF("+CIPCLOSE="), mux);
-
       uint8_t request_op   = 0; // 1 = port open request
       uint8_t request_type = 1; // 1 = SOCK_STREAM for TCP (protocol)
       uint8_t request_role = 0; // 0 = client
       at->sendAT(GF("#XSOCKET="), GF("0,1,0"));
       sock_connected = false;
-      //Serial.println("waiting response");
+      
       at->waitResponse(timeout_ms, "OK", "#XSOCKET");
+      
       at->streamSkipUntil('\n');
+
       // wait for OK
       at->waitResponse(2000L);
       //Serial.println("waiting response done");
@@ -180,7 +192,7 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
   bool initImpl(const char* pin = NULL) {
     DBG(GF("### TinyGSM Version:"), TINYGSM_VERSION);
     DBG(GF("### TinyGSM Compiled Module:  TinyGsmClientNRF9160"));
-
+      
     //if (!testAT()) { return false; }
     if (!testAT()) {
       DBG(GF("testAT failed"));
@@ -227,6 +239,7 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
   }
 
   String getModemNameImpl() {
+     Serial.println("nrf getModemNameImpl");
     String name = "Nordic nRF9160";
 
     sendAT(GF("+CGMM"));
@@ -250,6 +263,7 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
    */
  protected:
   bool restartImpl(const char* pin = NULL) {
+     Serial.println("nrf restartImpl");
     if (!testAT()) { return false; }
     sendAT(GF("#XRESET"));
     if (waitResponse(10000L) != 1) { return false; }
@@ -327,6 +341,7 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
  protected:
   bool gprsConnectImpl(const char* apn, const char* user = NULL,
                        const char* pwd = NULL) {
+     Serial.println("nrf gprsConnectedImpl");
     gprsDisconnect();  // Make sure we're not connected first
 
     // Define the PDP context
@@ -352,6 +367,7 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
   }
 
   bool gprsDisconnectImpl() {
+     Serial.println("nrf gprsDisconnectedImple");
     // Close all sockets and stop the socket service
     // Note: On the LTE models, this single command closes all sockets and the
     // service
@@ -363,7 +379,7 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
   }
 
   bool isGprsConnectedImpl() {
-
+ Serial.println("nrf isGprsConnetedImple");
     return true;
   }
 
@@ -373,6 +389,7 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
  protected:
   // Gets the CCID of a sim card via AT+CCID
   String getSimCCIDImpl() {
+     Serial.println("nrf getSimCCIDImpl");
     sendAT(GF("+CICCID"));
     if (waitResponse(GF(GSM_NL "+ICCID:")) != 1) { return ""; }
     String res = stream.readStringUntil('\n');
@@ -649,13 +666,33 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
     return res;
   }
 
+
+
+uint8_t waitForAvailable ( uint8_t mux){
+
+    uint32_t startMillis = millis();
+    while ( (millis() - startMillis) < sockets[mux]->_timeout ){
+     if (stream.available() > 0 ) {
+            return stream.available();
+            
+        }
+    }
+    return 0;
+
+}
+
+
   /*
    * Client related functions
    */
  protected:
-  bool dataAvailableFlg = false;
+
+
   bool modemConnect(const char* host, uint16_t port, uint8_t mux,
                     bool ssl = false, int timeout_s = 15) {
+    Serial.println("hostname");
+    
+    Serial.println(host);
     if (ssl) { DBG("SSL not yet supported on this module!"); }
     // Make sure we'll be getting data manually on this connection
     //sendAT(GF("+CIPRXGET=1"));
@@ -711,240 +748,318 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
     return true;
   }
 
+std::deque<uint8_t> gBuffer;
+
+
+// 1バイトの16進文字列をデコードして`uint8_t`に変換する関数
+uint8_t hexToByte(const std::string& hexString) {
+    return static_cast<uint8_t>(std::stoi(hexString, nullptr, 16));
+}
+
+// データを2文字ごとに読み取ってデコードし、gBufferに追加する関数
+void fillBuffer(std::deque<uint8_t>& data) {
+   
+  while (!data.empty()) {
+    
+      gBuffer.push_back(data.front());
+      data.pop_front();
+  }
+   /*
+    std::string hexString;
+    
+    while (!data.empty()) {
+        // `data`から1バイト取得して`char`にキャスト
+      
+        char byteChar = static_cast<char>(data.front());
+        data.pop_front();
+        
+        // 2文字ごとに連結して`hexString`を作成
+        hexString += byteChar;
+        if (hexString.size() == 2) {
+            // 2文字の`hexString`を`uint8_t`にデコードし、gBufferに追加
+            uint8_t decodedByte = hexToByte(hexString);
+            gBuffer.push_back(decodedByte);
+            hexString.clear(); // 次の2文字のためにクリア
+        }
+    }
+    */
+}
+
+bool removeUpToFirstSequence(std::deque<uint8_t>& data) {
+    // 探したいシーケンス
+    std::deque<uint8_t> sequence = {0x0D, 0x0A};
+
+    // シーケンスの開始位置を探す
+    for (size_t i = 0; i <= data.size() - sequence.size(); ++i) {
+        // シーケンスと一致するか確認
+        if (data[i] == sequence[0] && data[i + 1] == sequence[1]) {
+            // シーケンスの直後からデータを残す
+            data.erase(data.begin(), data.begin() + i + sequence.size());
+            return true; // 削除したことを示す
+        }
+    }
+    return false; // シーケンスが見つからなかった場合
+}
+
+bool checkLastSequenceIfError(const std::deque<uint8_t>& data) {
+    // "ERROR" シーケンス
+    
+    std::deque<uint8_t> errorSequence = {0x45, 0x52, 0x52, 0x4F, 0x52, 0x0D, 0x0A};
+
+    // データが "ERROR" シーケンス以上の長さか確認
+    if (data.size() >= errorSequence.size()) {
+        // 最後のバイトが "ERROR" シーケンスと一致するか確認
+        for (size_t i = 0; i < errorSequence.size(); ++i) {
+            if (data[data.size() - errorSequence.size() + i] != errorSequence[i]) {
+                return false;
+            }
+        }
+        return true; // 最後のシーケンスが "ERROR" と一致
+    }
+    return false; // データが短すぎる、または一致しない
+}
+bool removeLastSequenceIfMatches(std::deque<uint8_t>& data) {
+    // 確認したいシーケンス
+    
+    std::deque<uint8_t> sequence = {0x0D, 0x0A, 0x4F, 0x4B, 0x0D, 0x0A};
+
+    // データが6バイト以上あるか確認
+    if (data.size() >= sequence.size()) {
+        // 最後の6バイトがシーケンスと一致するか確認
+        bool matches = true;
+        for (size_t i = 0; i < sequence.size(); ++i) {
+            if (data[data.size() - sequence.size() + i] != sequence[i]) {
+                matches = false;
+                break;
+            }
+        }
+
+        // 一致する場合は最後の6バイトを削除して true を返す
+        if (matches) {
+            data.erase(data.end() - sequence.size(), data.end());
+            return true;
+        }
+    }
+    // 一致しない場合は false を返す
+    return false;
+}
+
+bool removeUpToAndIncludingConsecutiveHexZeros(std::deque<uint8_t>& data, size_t zeroCountThreshold) {
+    size_t zeroCount = 0;
+    for (size_t i = 0; i < data.size(); ++i) {
+        if (data[i] == 0x00) {
+            zeroCount++;
+            if (zeroCount >= zeroCountThreshold) {
+                // 指定された数以上の0x00が連続している場所を見つけたので、その位置以降のデータを残す
+                data.erase(data.begin(), data.begin() + i + 1);
+                return true;
+            }
+        } else {
+            zeroCount = 0;  // 0x00以外の値があればカウントリセット
+        }
+    }
+    return false;  // 指定された数以上の0x00が見つからなかった場合
+}
+void printAsHexString(const std::deque<uint8_t>& buffer) {
+    
+    for (auto byte : buffer) {
+        if (byte < 0x10) {
+            Serial.print("0");  // 1桁の場合は先頭に0を追加
+        }
+        Serial.print(byte, HEX);  // 16進数で出力
+    }
+    Serial.println();  // 改行
+}
+bool dataAvailableFlg=false;
   int16_t modemSend(const void* buff, size_t buff_len, uint8_t mux) {
     uint8_t datatype = DATATYPE;
     uint8_t tempchar;
     size_t buff_index;
-    size_t result_len = 0;
+    size_t result_len = -1;
     size_t len = buff_len;
+    dataAvailableFlg=false;
+    while (!gBuffer.empty()) {
+      
+      gBuffer.pop_back();
+    }
+       while (stream.available()) {
+        stream.read();
+      }
 
-    uint8_t block_count = (uint8_t)(len / NRF9160_NET_IPV4_MTU_SIZE_TX);
-    size_t block_count_last = (size_t)(len % NRF9160_NET_IPV4_MTU_SIZE_TX);
-
-    int timeout_s = 15;
+    
+    
+    int timeout_s = 1;
     uint32_t timeout_ms = ((uint32_t)timeout_s) * 1000;
 
 
-    //Serial.print("len = ");
-    //Serial.println(len);
-    //Serial.print("block_count = ");
-    //Serial.println(block_count);
-    //Serial.print("block_count_last = ");
-    //Serial.println(block_count_last);
-
-    for(uint8_t j = 0; j < (block_count + 1); j++) {
-
-      uint8_t attempt_count = NRF9160_RETRY_COUNT; //set attempt count
       //loop here incase of send error, we want to retry
-      while(1) {
-        // if we aren't going to send anything exit
-        if((size_t)(j * NRF9160_NET_IPV4_MTU_SIZE_TX) == (size_t)len) {
-          break;
+      uint32_t startMillis = millis();
+      // while(1) {
+
+        if ( (millis() - startMillis > sockets[mux]->_timeout) ) {
+          Serial.println("Timeout reached.");
+            return 0;
+          //break; // タイムアウトが経過したらループを終了
         }
-        if(datatype == 0)
-          stream.write("AT#XSENDB=\""); // HEX datamode
-        else
-          stream.write("AT#XSEND=\"");  //text datamode
+        
+        sendAT(GF("#XSEND"));
 
-        //Serial.print("j = ");
-        //Serial.println(j);
+        waitResponse(timeout_ms, "OK");
 
-        for(size_t i = 0; i < NRF9160_NET_IPV4_MTU_SIZE_TX; i++) {
-          //Serial.print("i = ");
-          //Serial.println(i);
-
-          buff_index = (j * NRF9160_NET_IPV4_MTU_SIZE_TX) + i;
-
-          //Serial.print("buff_index = ");
-          //Serial.println(buff_index);
-
-          if((size_t)buff_index == (size_t)len) {
-            /*
-            Serial.println("buff_index == lenth, break");
-            Serial.print("j = ");
-            Serial.println(j);
-            Serial.print("i = ");
-            Serial.println(i);
-            Serial.print("buff_index = ");
-            Serial.println(buff_index);
-            */
-            break;
-          }
+// printHex(reinterpret_cast<const uint8_t*>(buff), len);
+        for(size_t buff_index = 0; buff_index < len; buff_index++) {
+          
           tempchar = reinterpret_cast<const uint8_t*>(buff)[buff_index];
-          if(datatype == 0) {
-            if(tempchar < 0x10) {
-              stream.print(static_cast<char>('0'));
-            }
-            stream.print(tempchar, HEX);
-          } else {
-            if(tempchar == '\"')
-              stream.write('\\');
-            stream.write(tempchar);
-          }
-        }
-        stream.write("\"\r\n", 3);
+          stream.write(tempchar);
+          
+         }
+        
+        stream.write("+++");
         stream.flush();
 
-        int8_t res1 = waitResponse(timeout_ms, GFP("#XSEND:"), GF("ERROR\r\n"));
-
-        if(res1 == 1) {
-          break;
-        }
-        // else repeat it
-
-        attempt_count -= 1;
-        if(attempt_count == 0) {
-          Serial.println("retry, attempt_count == 0, break");
-          return false;
-        }
-        //short delay
-        delay(500L);  // TODO(?):  Test this delay!
-
+      
+      while (stream.available() > 0) {
+        stream.read();
       }
-      result_len += streamGetIntBefore('\n');
-      // wait for ok
-      if (waitResponse(timeout_ms, "OK\r\n") != 1) { return false; }
+    //  }
+     
+    //sockets[mux]->sock_available=1;
+   size_t c = -1;
 
-      //did we send all the data? if so break
-      if((size_t)result_len == (size_t)len) {
-        break;
-      }
+
+  waitResponse(timeout_ms, "#XDATAMODE:");
+  result_len =streamGetIntBefore('\n');
+  if(result_len>4096){  result_len=buff_len; }
+  // waitResponse(timeout_ms, "#XDATAMODE: 0\r\n");
+   
+  while (stream.available()) { stream.read(); }  
+    /*
+   if ( waitForAvailable(mux) != -1 ) {
+        waitResponse(timeout_ms, "#XDATAMODE: 0\n");
     }
-    //DBG(" SET dataAvailableFlg = true");
-    dataAvailableFlg = true;
-
+    */
+//    delay(100L);     
+ 
+    // stream.flush();
     return result_len;
   }
 
-  size_t modemRead(size_t size, uint8_t mux) {
-    uint8_t datatype = DATATYPE;
+  size_t modemRead(size_t s, uint8_t mux) {
+    // uint8_t datatype = DATATYPE;
     if (!sockets[mux]) return 0;
-    char buffer[(NRF9160_NET_IPV4_MTU_SIZE_RX + 50) * 2];
-    uint16_t buffer_length = 0;
-    int timeout_s = 5;
-    uint32_t timeout_ms = ((uint32_t)timeout_s) * 1000;
-    bool receive_done = false;
-    if(datatype == 0)
-      sendAT(GF("#XRECVB="),size);
-    else 
-      sendAT(GF("#XRECV="),size);
 
-    //  ^^ Requested number of data bytes (1-1460 bytes)to be read
-    int16_t len_requested = size;
-    int16_t len_confirmed = 0;
+if( s > gBuffer.size() ){
+bool cmdSending = false;
+//while (true) {
 
-    //begin receiving data here into temp buffer
-    while (receive_done == false) {
-      uint32_t startMillis = millis();
-      while (stream.available() < 1 &&
-             (millis() - startMillis < sockets[mux]->_timeout)) {
-        TINY_GSM_YIELD();
-      }
-      while((stream.available() > 0) && (receive_done == false)) {
-        char temp_hex[3];
-        char temp = stream.read();
-        sprintf(temp_hex, "%02X", temp);
-        buffer[buffer_length++] = temp;
-        //DBG("read in [", temp, "] [0x", temp_hex, "] buffer_length = ", buffer_length);
+    if (!cmdSending) {
+        sendAT(GF("#XRECV=0,256"));
+        cmdSending = true;
+    }
 
-        if(buffer_length > strlen("#XRECV:")) {
-          if(strncmp(&buffer[buffer_length - strlen("#XRECV:")], "#XRECV:", strlen("#XRECV:")) == 0) {
-            //DBG(" detected [#XRECV:] at ", buffer_length - 7);
-            len_confirmed = streamGetIntBefore('\n');
-            waitResponse(timeout_ms, "OK\r\n");
-            receive_done = true;
-          }
+ 
+    std::vector<uint8_t> dataBuffer;
+    int read = 0;
+
+    while (waitForAvailable(mux) > 0) {
+        uint8_t byte = stream.read();  // バイナリとして1バイトずつ読み込み
+        dataBuffer.push_back(byte);
+    }
+
+    if (dataBuffer.empty()) {
+        read = 1;
+     //   break;
+    } 
+
+    // バイナリデータ内で"ERROR"を探す
+    const std::vector<uint8_t> errorPattern = {'E', 'R', 'R', 'O', 'R'};
+    auto errorPos = std::search(dataBuffer.begin(), dataBuffer.end(), errorPattern.begin(), errorPattern.end());
+    if (errorPos != dataBuffer.end()) {
+        read = 8;
+        Serial.println("error!");
+       // break;
+    }
+
+    // "\r\nOK" のシーケンスをバイナリとして探して削除
+    const std::vector<uint8_t> okPattern = {'\r', '\n', 'O', 'K'};
+    auto posOK = std::search(dataBuffer.begin(), dataBuffer.end(), okPattern.begin(), okPattern.end());
+    if (posOK != dataBuffer.end()) {
+        dataBuffer.erase(posOK, dataBuffer.end());
+    }
+    // else{ break; }
+    // "\r\n" のシーケンスをバイナリとして探して削除
+    const std::vector<uint8_t> newlinePattern = {'\r', '\n'};
+    auto pos = std::search(dataBuffer.begin(), dataBuffer.end(), newlinePattern.begin(), newlinePattern.end());
+    if (pos != dataBuffer.end()) {
+        dataBuffer.erase(dataBuffer.begin(), pos + newlinePattern.size());
+        pos = std::search(dataBuffer.begin(), dataBuffer.end(), newlinePattern.begin(), newlinePattern.end());
+        if (pos != dataBuffer.end()) {
+            dataBuffer.erase(dataBuffer.begin(), pos + newlinePattern.size());
         }
-        if(buffer_length > strlen("ERROR")) {
-          if(strncmp(&buffer[buffer_length - strlen("ERROR")], "ERROR", strlen("ERROR")) == 0) {
-            receive_done = true;
-          }
-        }
-      }
-    }
-    /*
-    DBG(" datatype      = ", datatype);
-    DBG(" len_requested = ", len_requested);
-    DBG(" len_confirmed = ", len_confirmed);
-    DBG(" buffer_length = ", buffer_length);
-    */
-
-    if(datatype == 0) {
-      // adjust for binary lenth which is double
-      if(len_confirmed != 0)
-        len_confirmed = len_confirmed / 2;
     }
 
-    if(len_confirmed > 0) {
-      for (int i = 0; i < len_confirmed; i++) {
-        char c;
-        if(datatype == 0) { // hex data type, 0xDEADBEED = "DEADBEEF"
-          char buf[4] = {
-              0,
-          };
-          buf[0] = buffer[(i * 2)];
-          buf[1] = buffer[(i * 2) + 1];
-          c = strtol(buf, NULL, 16);
-        } else if(datatype == 1) { //text data type
-          c = buffer[i];
-        }
-        sockets[mux]->rx.put(c);
-      }
+    cmdSending = false;
+
+   // if (dataBuffer.empty()) break;
+
+    size_t si = dataBuffer.size();
+    for (size_t i = 0; i < si; ++i) {
+        gBuffer.push_back(dataBuffer[i]);  // gBufferに追加
     }
-    if(len_confirmed == 0) {
-      //DBG(" SET dataAvailableFlg = false");
-      dataAvailableFlg = false;
-    } else {
-      //DBG(" NO SET dataAvailableFlg = false");
+
+    if (si != NRF9160_TCP_PAYLOAD_SIZE_RX) {
+   //     break;
     }
-    // DBG("### READ:", len_requested, "from", mux);
-    // sockets[mux]->sock_available = modemGetAvailable(mux);
-    sockets[mux]->sock_available = len_confirmed;
-    //waitResponse(timeout_ms);
-    return len_confirmed;
+ // }
+  
   }
-
-  size_t modemGetAvailable(uint8_t mux) {
-    if (!sockets[mux]) return 0;
-    if(dataAvailableFlg == true) {
-      //DBG(" GET dataAvailableFlg = true");
-      return NRF9160_NET_IPV4_MTU_SIZE_RX; // The maximum size for NET_IPV4_MTU is 576 bytes
-    } else {
-      //DBG(" GET dataAvailableFlg = false");
-      // reception complete, close the socket
-
-      // #XSOCKET
-      // op, type, role
-      // op =   1 = port open request
-      // type = 1 = SOCK_STREAM for TCP (protocol)
-      // role = 0 = client
-      uint8_t request_op   = 0; // 1 = port open request
-      uint8_t request_type = 1; // 1 = SOCK_STREAM for TCP (protocol)
-      uint8_t request_role = 0; // 0 = client
-      /*
-      sendAT(GF("#XSOCKET="), GF("0,1,0"));
-
-      int timeout_s = 5;
-      uint32_t timeout_ms = ((uint32_t)timeout_s) * 1000;
-      if (waitResponse(timeout_ms, GF("#XSOCKET:")) != 1) { return false; }
-      uint8_t result_op       = streamGetIntBefore(',');
-      streamSkipUntil('\n');
-
-      // wait for ok
-      if (waitResponse(timeout_ms, "OK") != 1) { return false; }
-
-      if(result_op == 0) {
-        sockets[mux]->sock_connected = false;
-        DBG("### Closed: ", mux);
-      }
-      */
-
-      return NRF9160_NET_IPV4_MTU_SIZE_RX;
+  
+    int bytesRead=0; 
+     
+    for (size_t i = 0; i < s; i++ ) {
+        
+         if (!gBuffer.empty()) {
+         
+          uint8_t c = gBuffer.front();
+          sockets[mux]->rx.put(c);
+          gBuffer.pop_front();
+           bytesRead++;
+        }
     }
+
+    // sockets[mux]->sock_available = gBuffer.size();
+
+    sockets[mux]->sock_available = bytesRead;
+       
+    dataAvailableFlg=true;
+   // Serial.println("読み込んだ");
+    // Serail.println(bytesRead);
+
+    return bytesRead;
+  
+  }
+  
+  size_t modemGetAvailable(uint8_t mux) {
+    if (!sockets[mux]){
+
+      return 0;}
+     // return gBuffer.size();
+     
+      if(dataAvailableFlg == true) {
+        
+        sockets[mux]->sock_available =gBuffer.size();
+        return gBuffer.size();
+      } else  {  
+        sockets[mux]->sock_available =0;
+        // Serial.println("unavailable");
+        return -1;
+      
+      }
   }
 
   bool modemGetConnected(uint8_t mux) {
     // Read the status of all sockets at once
+    
     sendAT(GF("+XSOCKET?"));
     if (waitResponse(GF("+XSOCKET:")) != 1) {
       // return false;  // TODO:  Why does this not read correctly?
@@ -1055,6 +1170,7 @@ class TinyGsmNrf9160 : public TinyGsmModem<TinyGsmNrf9160>,
   finish:
     if (!index) {
       data.trim();
+      //Serial.println("...?");
       if (data.length()) { DBG("### Unhandled:", data); }
       data = "";
     }
